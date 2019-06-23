@@ -244,33 +244,28 @@ void writeRow( void) {
  */
 void packRow( uint32_t address, uint8_t *data, uint8_t data_count) {
     // copy only the bytes from the current data packet up to the boundary of a row 
-    uint8_t  index = (address & 0x3e)>>1; 
+    uint8_t  index = (address & 0x3f); 
     uint32_t new_row = (address & 0xfffc0)>>1;
+    uint8_t * bytes=(uint8_t)row;
     if (new_row != row_address) {
         writeRow();
         row_address = new_row;
     }
-    // ensure data is always even (rounding up)
-    data_count = (data_count+1) & 0xfe;
     // copy data up to the row boundaries
-    while ((data_count > 0) && (index < ROW_SIZE)){
-        uint16_t word = *data++;
-        word += ((uint16_t)(*data++)<<8);
-        row[index++] = word;
-        data_count -= 2;
+    while ((data_count > 0) && (index < ROW_SIZE*2)){
+        bytes[index++] = *data++;;
+        data_count --;
     }
     // if a complete row was filled, proceed to programming
-    if (index == ROW_SIZE) { 
+    if (index == ROW_SIZE*2) { 
         writeRow();
         // next consider the split row scenario
         if (data_count > 0) {   // leftover must spill into next row
             row_address += ROW_SIZE;
             index = 0;
             while (data_count > 0){
-                uint16_t word = *data++;
-                word += ((uint16_t)(*data++)<<8);
-                row[index++] = word;
-                data_count -= 2;
+                bytes[index++] = *data++;
+                data_count --;
             }
         }
     }
